@@ -1,39 +1,40 @@
-#History-Pig
+# Safe copy of Chrome/Edge History DB to %TEMP%
+# Run elevated only if required. Do NOT run on production machines without written authorization.
 
-# See if file is a thing
-Test-Path -Path "$env:USERPROFILE\AppData\Local\Google\Chrome\User Data\Default\History" -PathType Leaf
+$now = Get-Date -Format "yyyy-MM-dd_HH-mm"
+$tmp = $env:TEMP
 
-#If the file does not exist, write to host.
-if (-not(Test-Path -Path "$env:USERPROFILE/AppData/Local/Google/Chrome/User Data/Default/History" -PathType Leaf)) {
-     try {
-         Write-Host "The Chrome History file has not been found. "
-     }
-     catch {
-         throw $_.Exception.Message
-     }
- }
- # Copy Chrome History to Temp Directory 
-  else {
-     $F1 = "$env:USERNAME-$(get-date -f yyyy-MM-dd_hh-mm)_chrome_history"
-     Copy-Item "$env:USERPROFILE/AppData/Local/Google/Chrome/User Data/Default/History" -Destination "$env:tmp/$F1" 
- }
+# Define source paths (use LOCALAPPDATA for user-local apps)
+$chromeHistory = Join-Path $env:LOCALAPPDATA "Google\Chrome\User Data\Default\History"
+$edgeHistory   = Join-Path $env:LOCALAPPDATA "Microsoft\Edge\User Data\Default\History"
 
-# See if file is a thing
-Test-Path -Path "$env:USERPROFILE/AppData/Local/Microsoft/Edge/User Data/Default/History" -PathType Leaf
+function Copy-HistoryIfPresent {
+    param(
+        [string]$SourcePath,
+        [string]$Prefix
+    )
 
-#If the file does not exist, write to host.
-if (-not(Test-Path -Path "$env:USERPROFILE/AppData/Local/Microsoft/Edge/User Data/Default/History" -PathType Leaf)) {
+    if (-not (Test-Path -Path $SourcePath -PathType Leaf)) {
+        Write-Host "$Prefix history not found: $SourcePath"
+        return
+    }
+
+    $destName = "$($env:USERNAME)-$now-$Prefix-history"
+    $destPath = Join-Path $tmp $destName
+
     try {
-        Write-Host "The Edge History file has not been found. "
+        # Attempt to copy. If browser has file locked, this may fail.
+        Copy-Item -Path $SourcePath -Destination $destPath -Force -ErrorAction Stop
+        Write-Host "Copied $Prefix history to: $destPath"
+    } catch {
+        Write-Warning "Failed to copy $Prefix History (file may be in use by browser). Error: $($_.Exception.Message)"
+        # Optional: we can attempt to make a shadow copy or advise to close the browser.
     }
-    catch {
-        throw $_.Exception.Message
-    }
-}
- # Copy Edge History to Temp Directory 
- else {
-    $F2 = "$env:USERNAME-$(get-date -f yyyy-MM-dd_hh-mm)_edge_history"
-    Copy-Item "$env:USERPROFILE/AppData/Local/Microsoft/Edge/User Data/Default/History" -Destination "$env:tmp/$F2" 
 }
 
-$done = New-Object -ComObject Wscript.Shell;$done.Popup("Driver Updated",1)
+Copy-HistoryIfPresent -SourcePath $chromeHistory -Prefix "chrome"
+Copy-HistoryIfPresent -SourcePath $edgeHistory   -Prefix "edge"
+
+# Optional visual confirmation (simple)
+[void][System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms")
+[System.Windows.Forms.MessageBox]::Show("History copy attempt completed. Check $tmp for results.","OMGCABLE DEMO", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information)
