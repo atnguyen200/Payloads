@@ -15,7 +15,7 @@
     Twitter: @mwbengtsson
 
 .LINK
-    
+## referenced from https://github.com/imabdk/PowerShell/blob/master/Get-Loot.ps1
 #> 
 
 # Create Get-WifiProfiles function
@@ -70,4 +70,6 @@ catch {
 }
 
 
+
 #endregion
+
